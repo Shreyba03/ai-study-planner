@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 
 function App() {
@@ -6,12 +6,41 @@ function App() {
   const [deadline, setDeadline] = useState("");
   const [timePerDay, setTimePerDay] = useState("");
 
+  const [errors, setErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!subject || subject.trim().length < 3) {
+      newErrors.subject = "Enter at least 3 characters";
+    }
+
+    if (!deadline || Number(deadline) <= 0) {
+      newErrors.deadline = "Deadline must be greater than 0";
+    }
+
+    if (!timePerDay || Number(timePerDay) <= 0) {
+      newErrors.timePerDay = "Time per day must be greater than 0";
+    }
+
+    setErrors(newErrors);
+    setIsFormValid(Object.keys(newErrors).length === 0);
+  };
+
+  useEffect(() => {
+    validateForm(); // Validate whenever inputs change
+  }, [subject, deadline, timePerDay]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    validateForm();
+
+    if (!isFormValid) return;
+
     console.log("Subject:", subject);
     console.log("Deadline (weeks):", deadline);
     console.log("Daily Study Time (hrs):", timePerDay);
-    // Later we'll send this to backend
   };
 
   return (
@@ -26,7 +55,9 @@ function App() {
             onChange={(e) => setSubject(e.target.value)}
             placeholder="e.g., LeetCode"
           />
+          {errors.subject && <p className="error">{errors.subject}</p>}
         </div>
+
         <div>
           <label>Deadline (weeks):</label>
           <input
@@ -35,7 +66,9 @@ function App() {
             onChange={(e) => setDeadline(e.target.value)}
             placeholder="e.g., 4"
           />
+          {errors.deadline && <p className="error">{errors.deadline}</p>}
         </div>
+
         <div>
           <label>Daily Study Time (hours):</label>
           <input
@@ -44,8 +77,12 @@ function App() {
             onChange={(e) => setTimePerDay(e.target.value)}
             placeholder="e.g., 2"
           />
+          {errors.timePerDay && <p className="error">{errors.timePerDay}</p>}
         </div>
-        <button type="submit">Generate Plan</button>
+
+        <button type="submit" disabled={!isFormValid}>
+          Generate Plan
+        </button>
       </form>
     </div>
   );

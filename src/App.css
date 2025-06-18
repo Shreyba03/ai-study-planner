@@ -37,3 +37,9 @@ button:disabled {
 button:hover {
   background-color: #0056b3;
 }
+
+.error {
+  color: red;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}

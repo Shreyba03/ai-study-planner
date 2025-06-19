@@ -8,6 +8,8 @@ function App() {
 
   const [errors, setErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
+  const [planResponse, setPlanResponse] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -32,15 +34,42 @@ function App() {
     validateForm(); // Validate whenever inputs change
   }, [subject, deadline, timePerDay]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    validateForm();
 
+    validateForm();
     if (!isFormValid) return;
 
-    console.log("Subject:", subject);
-    console.log("Deadline (weeks):", deadline);
-    console.log("Daily Study Time (hrs):", timePerDay);
+    setIsLoading(true);
+    setPlanResponse(null);
+
+    try {
+      // Use absolute URL since proxy isn't working
+      const response = await fetch("http://localhost:5001/generate-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject, deadline, timePerDay }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+      
+      setPlanResponse(data);
+      
+    } catch (err) {
+      console.error("Error contacting backend:", err);
+      setPlanResponse({ 
+        error: `Failed to generate plan: ${err.message}` 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -80,10 +109,33 @@ function App() {
           {errors.timePerDay && <p className="error">{errors.timePerDay}</p>}
         </div>
 
-        <button type="submit" disabled={!isFormValid}>
-          Generate Plan
+        <button type="submit" disabled={!isFormValid || isLoading}>
+          {isLoading ? "Generating..." : "Generate Plan"}
         </button>
       </form>
+
+      {/* Display the plan response */}
+      {planResponse && (
+        <div style={{ marginTop: "20px", padding: "20px", border: "1px solid #ccc", borderRadius: "5px" }}>
+          {planResponse.error ? (
+            <div style={{ color: "red" }}>
+              <h3>❌ Error</h3>
+              <p>{planResponse.error}</p>
+            </div>
+          ) : (
+            <div style={{ color: "green" }}>
+              <h3>✅ {planResponse.message}</h3>
+              {planResponse.data && (
+                <div>
+                  <p><strong>Subject:</strong> {planResponse.data.subject}</p>
+                  <p><strong>Timeline:</strong> {planResponse.data.deadline}</p>
+                  <p><strong>Daily Time:</strong> {planResponse.data.dailyTime}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
